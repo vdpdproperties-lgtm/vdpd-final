@@ -1,0 +1,281 @@
+// Prisma Schema for Vrindavan Dham Property & Developers (VDPD)
+// Production Ready PostgreSQL Database Specification
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  AGENT
+  CONTENT_EDITOR
+}
+
+enum PropertyType {
+  RESIDENTIAL_PLOT
+  LUXURY_VILLA
+  COMMERCIAL_SPACE
+  STRATEGIC_INVESTMENT
+  FARMHOUSE_RETREAT
+  GATED_TOWNSHIP
+}
+
+enum PropertyStatus {
+  AVAILABLE
+  FAST_SELLING
+  READY_TO_MOVE
+  UNDER_CONSTRUCTION
+  SOLD_OUT
+}
+
+enum ProjectStatus {
+  PLANNING
+  UNDER_DEVELOPMENT
+  READY_TO_POSSESS
+  COMPLETED
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  SITE_VISIT_SCHEDULED
+  NEGOTIATING
+  CONVERTED
+  CLOSED
+}
+
+model Admin {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  name         String
+  passwordHash String
+  role         Role          @default(ADMIN)
+  avatar       String?
+  phone        String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  sessions     UserSession[]
+
+  @@index([email])
+}
+
+model UserSession {
+  id           String   @id @default(uuid())
+  adminId      String
+  admin        Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  token        String   @unique
+  userAgent    String?
+  ipAddress    String?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([token])
+  @@index([adminId])
+}
+
+model Property {
+  id               String          @id @default(uuid())
+  title            String
+  slug             String          @unique
+  tagline          String?
+  description      String          @db.Text
+  location         String
+  address          String?
+  landmarkDistances Json?          // e.g. {"Banke Bihari Temple": "4.5 km", "Prem Mandir": "3.2 km"}
+  price            Decimal         @db.Decimal(12, 2)
+  priceDisplay     String          // e.g. "₹ 18 Lakh Onwards"
+  area             String          // e.g. "100 - 500 Sq. Yds"
+  areaSqFt         Int?
+  propertyType     PropertyType    @default(RESIDENTIAL_PLOT)
+  status           PropertyStatus  @default(AVAILABLE)
+  featured         Boolean         @default(false)
+  featuredImage    String
+  gallery          PropertyImage[]
+  amenities        String[]        // e.g. ["Gated Township", "24/7 Security", "Krishna Temple Inside"]
+  investmentYield  String?         // e.g. "18% - 24% Projected Appreciation"
+  reraApproved     Boolean         @default(true)
+  reraNumber       String?
+  googleMapUrl     String?
+  latitude         Float?
+  longitude        Float?
+  viewsCount       Int             @default(0)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  leads            Lead[]
+  projectId        String?
+  project          Project?        @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([slug])
+  @@index([propertyType])
+  @@index([status])
+  @@index([featured])
+}
+
+model PropertyImage {
+  id         String   @id @default(uuid())
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  url        String
+  caption    String?
+  order      Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([propertyId])
+}
+
+model Project {
+  id             String         @id @default(uuid())
+  name           String
+  slug           String         @unique
+  tagline        String?
+  description    String         @db.Text
+  location       String
+  status         ProjectStatus  @default(UNDER_DEVELOPMENT)
+  completionDate DateTime?
+  featuredImage  String
+  gallery        ProjectImage[]
+  properties     Property[]
+  totalUnits     Int?
+  masterPlanUrl  String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([slug])
+}
+
+model ProjectImage {
+  id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  url       String
+  caption   String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
+}
+
+model Category {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  blogs       Blog[]
+  createdAt   DateTime @default(now())
+}
+
+model Tag {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  slug      String   @unique
+  blogs     Blog[]   @relation("BlogToTag")
+  createdAt DateTime @default(now())
+}
+
+model Blog {
+  id            String    @id @default(uuid())
+  title         String
+  slug          String    @unique
+  content       String    @db.Text
+  excerpt       String    @db.Text
+  featuredImage String
+  categoryId    String
+  category      Category  @relation(fields: [categoryId], references: [id])
+  tags          Tag[]     @relation("BlogToTag")
+  author        String    @default("VDPD Editorial Team")
+  readTime      String    @default("5 min read")
+  published     Boolean   @default(true)
+  seoTitle      String?
+  seoDesc       String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([slug])
+  @@index([categoryId])
+}
+
+model Lead {
+  id               String      @id @default(uuid())
+  name             String
+  phone            String
+  email            String
+  propertyInterest String?
+  propertyId       String?
+  property         Property?   @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  message          String?     @db.Text
+  preferredDate    DateTime?
+  status           LeadStatus  @default(NEW)
+  notes            String?     @db.Text
+  source           String      @default("Website Contact Form")
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  @@index([email])
+  @@index([phone])
+  @@index([status])
+}
+
+model Testimonial {
+  id          String   @id @default(uuid())
+  name        String
+  designation String   // e.g. "Devotee & Investor from Mumbai"
+  review      String   @db.Text
+  image       String
+  rating      Int      @default(5)
+  verified    Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+}
+
+model FAQ {
+  id           String   @id @default(uuid())
+  question     String
+  answer       String   @db.Text
+  category     String   @default("General")
+  displayOrder Int      @default(0)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model TeamMember {
+  id        String   @id @default(uuid())
+  name      String
+  position  String
+  bio       String   @db.Text
+  photo     String
+  phone     String?
+  email     String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model SiteSetting {
+  id                   String   @id @default(uuid())
+  companyName          String   @default("Vrindavan Dham Property & Developers")
+  shortName            String   @default("VDPD")
+  tagline              String   @default("Your Vrindavan. Your Property. Your Future.")
+  logoUrl              String?
+  address              String   @default("Near Prem Mandir, Chhatikara-Vrindavan Road, Vrindavan, Uttar Pradesh 281121")
+  phonePrimary         String   @default("+91 98765 43210")
+  phoneSecondary       String   @default("+91 98765 43211")
+  emailPrimary         String   @default("info@vdpd.in")
+  emailSecondary       String   @default("sales@vdpd.in")
+  whatsappNumber       String   @default("+91 98765 43210")
+  workingHours         String   @default("Monday - Saturday: 9:00 AM - 7:00 PM | Sunday By Appointment")
+  facebookUrl          String   @default("https://facebook.com/vdpdvrindavan")
+  instagramUrl         String   @default("https://instagram.com/vdpdvrindavan")
+  youtubeUrl           String   @default("https://youtube.com/@vdpdvrindavan")
+  linkedinUrl          String   @default("https://linkedin.com/company/vdpd")
+  metaTitle            String   @default("Vrindavan Dham Property & Developers | VDPD")
+  metaDescription      String   @default("Premium residential plots, luxury villas, and investment properties in Vrindavan Dham.")
+  googleAnalyticsId    String   @default("G-VDPD2026")
+  googleSearchConsole  String   @default("vdpd-gsc-verification-code")
+  updatedAt            DateTime @updatedAt
+}

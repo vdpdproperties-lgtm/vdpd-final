@@ -1,0 +1,8 @@
+{
+  "name": "Vrindavan Dham Property & Developers",
+  "description": "Premium real estate platform for Vrindavan Dham Property & Developers (VDPD) offering luxury plots, villas, commercial spaces, dynamic listings, and admin management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
