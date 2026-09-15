@@ -1,0 +1,132 @@
+{
+  "entities": {
+    "Property": {
+      "title": "Property",
+      "description": "A real estate property listing in Vrindavan Dham",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique property ID" },
+        "title": { "type": "string", "description": "Listing title" },
+        "slug": { "type": "string", "description": "URL slug" },
+        "propertyType": { "type": "string", "description": "Property category" },
+        "price": { "type": "number", "description": "Price in INR" },
+        "location": { "type": "string", "description": "Location description" },
+        "landmark": { "type": "string", "description": "Nearby landmark or temple" },
+        "area": { "type": "string", "description": "Area size (sq yards/sq ft)" },
+        "facing": { "type": "string", "description": "Vastu facing direction" },
+        "approval": { "type": "string", "description": "Authority approval (MVDA, etc)" },
+        "featured": { "type": "boolean", "description": "Featured on home page" },
+        "featuredImage": { "type": "string", "description": "Main photo URL" },
+        "gallery": { "type": "array", "description": "Image gallery URLs" },
+        "description": { "type": "string", "description": "Full description" },
+        "features": { "type": "array", "description": "Key highlights" },
+        "tags": { "type": "array", "description": "Search tags" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" }
+      },
+      "required": ["id", "title", "slug", "propertyType", "price", "location", "featuredImage"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "An integrated gated project or township in Vrindavan",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique project ID" },
+        "title": { "type": "string", "description": "Project title" },
+        "slug": { "type": "string", "description": "URL slug" },
+        "location": { "type": "string", "description": "Project location" },
+        "description": { "type": "string", "description": "Project description" },
+        "featuredImage": { "type": "string", "description": "Main banner photo URL" },
+        "status": { "type": "string", "description": "Status (Ongoing, Upcoming, Completed)" },
+        "priceRange": { "type": "string", "description": "Price range summary" },
+        "plotSizes": { "type": "string", "description": "Available plot sizes" }
+      },
+      "required": ["id", "title", "slug", "location", "status", "featuredImage"]
+    },
+    "BlogPost": {
+      "title": "BlogPost",
+      "description": "A real estate news article or market intelligence report",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique blog post ID" },
+        "title": { "type": "string", "description": "Article title" },
+        "slug": { "type": "string", "description": "Article URL slug" },
+        "category": { "type": "string", "description": "Category name" },
+        "author": { "type": "string", "description": "Author name" },
+        "excerpt": { "type": "string", "description": "Short summary" },
+        "content": { "type": "string", "description": "Markdown/text content" },
+        "featuredImage": { "type": "string", "description": "Featured photo URL" },
+        "readTime": { "type": "string", "description": "Estimated reading time" },
+        "createdAt": { "type": "string", "description": "Date created" },
+        "published": { "type": "boolean", "description": "Whether published live" }
+      },
+      "required": ["id", "title", "slug", "category", "featuredImage"]
+    },
+    "Lead": {
+      "title": "Lead",
+      "description": "A customer inquiry or property consultation lead",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique lead ID" },
+        "name": { "type": "string", "description": "Customer full name" },
+        "phone": { "type": "string", "description": "Customer contact phone" },
+        "email": { "type": "string", "description": "Customer email" },
+        "propertyInterest": { "type": "string", "description": "Property title or interest" },
+        "propertyId": { "type": "string", "description": "Optional referenced property ID" },
+        "message": { "type": "string", "description": "Customer inquiry message" },
+        "status": { "type": "string", "description": "Lead status (New, Contacted, Site Visit, Closed)" },
+        "createdAt": { "type": "string", "description": "Submission timestamp" }
+      },
+      "required": ["id", "name", "phone", "createdAt"]
+    },
+    "SiteSettings": {
+      "title": "SiteSettings",
+      "description": "Firm contact information and branding metadata",
+      "type": "object",
+      "properties": {
+        "firmName": { "type": "string", "description": "Firm name" },
+        "tagLine": { "type": "string", "description": "Firm tagline" },
+        "phonePrimary": { "type": "string", "description": "Main phone" },
+        "emailPrimary": { "type": "string", "description": "Main email" },
+        "officeAddress": { "type": "string", "description": "Office address in Vrindavan" }
+      }
+    },
+    "SitePhoto": {
+      "title": "SitePhoto",
+      "description": "Dynamic photo asset mapping",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Photo ID key" },
+        "name": { "type": "string", "description": "Friendly name" },
+        "url": { "type": "string", "description": "Image URL" },
+        "page": { "type": "string", "description": "Page where displayed" }
+      },
+      "required": ["id", "url"]
+    }
+  },
+  "firestore": {
+    "/properties/{propertyId}": {
+      "schema": { "$ref": "#/entities/Property" },
+      "description": "Public property catalog"
+    },
+    "/projects/{projectId}": {
+      "schema": { "$ref": "#/entities/Project" },
+      "description": "Master townships and projects catalog"
+    },
+    "/blogs/{blogId}": {
+      "schema": { "$ref": "#/entities/BlogPost" },
+      "description": "Market reports and blog posts"
+    },
+    "/leads/{leadId}": {
+      "schema": { "$ref": "#/entities/Lead" },
+      "description": "Customer inquiries and consultation leads"
+    },
+    "/site_settings/{settingId}": {
+      "schema": { "$ref": "#/entities/SiteSettings" },
+      "description": "Company profile and contact details"
+    },
+    "/site_photos/{photoId}": {
+      "schema": { "$ref": "#/entities/SitePhoto" },
+      "description": "Dynamic site image assignments"
+    }
+  }
+}

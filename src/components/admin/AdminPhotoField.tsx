@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { Upload, Image as ImageIcon, Link as LinkIcon, Check, X, Sparkles } from 'lucide-react';
+import { Upload, Image as ImageIcon, Link as LinkIcon, Check, X, Sparkles, Loader2 } from 'lucide-react';
 import { vrindavanPhotoPresets } from '../../data/seedData';
+import { compressImageFile } from '../../utils/imageCompression';
 
 interface AdminPhotoFieldProps {
   label: string;
@@ -21,7 +22,9 @@ export const AdminPhotoField: React.FC<AdminPhotoFieldProps> = ({
   const [urlInput, setUrlInput] = useState(currentUrl || '');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -30,13 +33,18 @@ export const AdminPhotoField: React.FC<AdminPhotoFieldProps> = ({
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        onChange(reader.result);
+    try {
+      setIsProcessing(true);
+      const compressed = await compressImageFile(file, 1600, 1080, 0.78);
+      if (compressed) {
+        onChange(compressed);
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Error processing image:', err);
+      alert('Could not process this image. Please try a different photo.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleApplyUrl = () => {
@@ -219,11 +227,21 @@ export const AdminPhotoField: React.FC<AdminPhotoFieldProps> = ({
           </div>
           <button
             type="button"
+            disabled={isProcessing}
             onClick={() => fileInputRef.current?.click()}
-            className="px-4 py-2 bg-[#16382E] hover:bg-[#204a3e] text-white text-xs font-semibold rounded-lg shadow-xs transition-colors cursor-pointer inline-flex items-center gap-1.5"
+            className="px-4 py-2 bg-[#16382E] hover:bg-[#204a3e] disabled:opacity-60 text-white text-xs font-semibold rounded-lg shadow-xs transition-colors cursor-pointer inline-flex items-center gap-1.5"
           >
-            <Upload className="w-3.5 h-3.5 text-[#B68A3C]" />
-            <span>Browse Computer Files</span>
+            {isProcessing ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 text-[#B68A3C] animate-spin" />
+                <span>Optimizing Image...</span>
+              </>
+            ) : (
+              <>
+                <Upload className="w-3.5 h-3.5 text-[#B68A3C]" />
+                <span>Browse Computer Files</span>
+              </>
+            )}
           </button>
         </div>
       )}

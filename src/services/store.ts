@@ -23,6 +23,18 @@ import {
   initialAdminUsers,
   initialSitePhotos 
 } from '../data/seedData';
+import { 
+  pushPropertyToFirestore, 
+  removePropertyFromFirestore,
+  pushProjectToFirestore,
+  removeProjectFromFirestore,
+  pushBlogToFirestore,
+  removeBlogFromFirestore,
+  pushLeadToFirestore,
+  removeLeadFromFirestore,
+  pushSettingsToFirestore,
+  pushPhotoToFirestore
+} from './firebaseSync';
 
 // Local storage persistent keys
 const STORAGE_KEYS = {
@@ -94,6 +106,7 @@ export class VDPDStore {
     }
     setStorage(STORAGE_KEYS.PROPERTIES, properties);
     this.notify();
+    pushPropertyToFirestore(property).catch(console.warn);
   }
 
   public static addProperty(propertyData: Partial<Property>): Property {
@@ -122,6 +135,7 @@ export class VDPDStore {
     properties.unshift(newProp);
     setStorage(STORAGE_KEYS.PROPERTIES, properties);
     this.notify();
+    pushPropertyToFirestore(newProp).catch(console.warn);
     return newProp;
   }
 
@@ -132,6 +146,7 @@ export class VDPDStore {
       properties[index] = { ...properties[index], ...updates };
       setStorage(STORAGE_KEYS.PROPERTIES, properties);
       this.notify();
+      pushPropertyToFirestore(properties[index]).catch(console.warn);
     }
   }
 
@@ -139,12 +154,14 @@ export class VDPDStore {
     const properties = this.getProperties().filter(p => p.id !== id);
     setStorage(STORAGE_KEYS.PROPERTIES, properties);
     this.notify();
+    removePropertyFromFirestore(id).catch(console.warn);
   }
 
   public static bulkDeleteProperties(ids: string[]): void {
     const properties = this.getProperties().filter(p => !ids.includes(p.id));
     setStorage(STORAGE_KEYS.PROPERTIES, properties);
     this.notify();
+    ids.forEach(id => removePropertyFromFirestore(id).catch(console.warn));
   }
 
   public static incrementViews(propertyId: string): void {
@@ -175,12 +192,14 @@ export class VDPDStore {
     }
     setStorage(STORAGE_KEYS.PROJECTS, projects);
     this.notify();
+    pushProjectToFirestore(project).catch(console.warn);
   }
 
   public static deleteProject(id: string): void {
     const projects = this.getProjects().filter(p => p.id !== id);
     setStorage(STORAGE_KEYS.PROJECTS, projects);
     this.notify();
+    removeProjectFromFirestore(id).catch(console.warn);
   }
 
   // --- Blogs ---
@@ -202,6 +221,7 @@ export class VDPDStore {
     }
     setStorage(STORAGE_KEYS.BLOGS, blogs);
     this.notify();
+    pushBlogToFirestore(blog).catch(console.warn);
   }
 
   public static updateBlog(id: string, updates: Partial<Blog>): Blog | undefined {
@@ -211,6 +231,7 @@ export class VDPDStore {
       blogs[index] = { ...blogs[index], ...updates };
       setStorage(STORAGE_KEYS.BLOGS, blogs);
       this.notify();
+      pushBlogToFirestore(blogs[index]).catch(console.warn);
       return blogs[index];
     }
     return undefined;
@@ -236,6 +257,7 @@ export class VDPDStore {
     blogs.unshift(newBlog);
     setStorage(STORAGE_KEYS.BLOGS, blogs);
     this.notify();
+    pushBlogToFirestore(newBlog).catch(console.warn);
     return newBlog;
   }
 
@@ -243,6 +265,7 @@ export class VDPDStore {
     const blogs = this.getBlogs().filter(b => b.id !== id);
     setStorage(STORAGE_KEYS.BLOGS, blogs);
     this.notify();
+    removeBlogFromFirestore(id).catch(console.warn);
   }
 
   // --- Leads / Inquiries ---
@@ -261,6 +284,7 @@ export class VDPDStore {
     leads.unshift(newLead);
     setStorage(STORAGE_KEYS.LEADS, leads);
     this.notify();
+    pushLeadToFirestore(newLead).catch(console.warn);
     return newLead;
   }
 
@@ -272,6 +296,7 @@ export class VDPDStore {
       if (notes !== undefined) lead.notes = notes;
       setStorage(STORAGE_KEYS.LEADS, leads);
       this.notify();
+      pushLeadToFirestore(lead).catch(console.warn);
     }
   }
 
@@ -279,6 +304,7 @@ export class VDPDStore {
     const leads = this.getLeads().filter(l => l.id !== id);
     setStorage(STORAGE_KEYS.LEADS, leads);
     this.notify();
+    removeLeadFromFirestore(id).catch(console.warn);
   }
 
   public static exportLeadsCSV(): string {
@@ -378,6 +404,7 @@ export class VDPDStore {
   public static saveSettings(settings: SiteSettings): void {
     setStorage(STORAGE_KEYS.SETTINGS, settings);
     this.notify();
+    pushSettingsToFirestore(settings).catch(console.warn);
   }
 
   // --- Wishlist ---
@@ -636,7 +663,24 @@ export class VDPDStore {
 
   // --- Site Photos Dynamic Management ---
   public static getSitePhotos(): SitePhotoItem[] {
-    return getStorage<SitePhotoItem[]>(STORAGE_KEYS.PHOTOS, initialSitePhotos);
+    const photos = getStorage<SitePhotoItem[]>(STORAGE_KEYS.PHOTOS, initialSitePhotos);
+    let sanitized = false;
+    const cleanPhotos = photos.map(p => {
+      // If photo URL is an oversized raw base64 string (> 500KB), replace with defaultUrl or initial preset
+      if (p.url && p.url.startsWith('data:') && p.url.length > 500000) {
+        sanitized = true;
+        const initial = initialSitePhotos.find(ip => ip.id === p.id);
+        return {
+          ...p,
+          url: p.defaultUrl || initial?.url || 'https://images.unsplash.com/photo-1627894483216-2138af692e32?auto=format&fit=crop&w=2000&q=85'
+        };
+      }
+      return p;
+    });
+    if (sanitized) {
+      setStorage(STORAGE_KEYS.PHOTOS, cleanPhotos);
+    }
+    return cleanPhotos;
   }
 
   public static getSitePhotosMap(): Record<string, string> {
@@ -655,6 +699,7 @@ export class VDPDStore {
       photos[index] = { ...photos[index], url: newUrl };
       setStorage(STORAGE_KEYS.PHOTOS, photos);
       this.notify();
+      pushPhotoToFirestore(photos[index]).catch(console.warn);
     }
   }
 

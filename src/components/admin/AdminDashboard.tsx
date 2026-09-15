@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   AdminUser, 
   Property, 
@@ -48,13 +48,16 @@ import {
   Layers,
   Globe,
   MapPin,
-  FolderPlus
+  FolderPlus,
+  Database
 } from 'lucide-react';
 import { Logo } from '../common/Logo';
 import { AdminProfileModal } from './AdminProfileModal';
 import { AdminUsersTab } from './AdminUsersTab';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import { AdminPhotoField } from './AdminPhotoField';
+import { subscribeFirebaseStatus, FirebaseSyncStatus } from '../../services/firebaseSync';
+import { compressImageFile } from '../../utils/imageCompression';
 
 interface AdminDashboardProps {
   adminUser: AdminUser | null;
@@ -89,6 +92,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [fbStatus, setFbStatus] = useState<FirebaseSyncStatus>({
+    connected: false,
+    syncing: false,
+    lastSyncedAt: null,
+    error: null,
+    totalProperties: 0,
+    totalProjects: 0,
+    totalBlogs: 0,
+    totalLeads: 0
+  });
+
+  useEffect(() => {
+    const unsub = subscribeFirebaseStatus(status => {
+      setFbStatus(status);
+    });
+    return () => unsub();
+  }, []);
 
   // Permission check helper
   const canAccess = (permKey: keyof AdminUser['permissions']): boolean => {
@@ -522,7 +542,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     });
   };
 
-  const handlePhotoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -531,13 +551,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setPhotoNewInputUrl(reader.result);
+    try {
+      const compressed = await compressImageFile(file, 1600, 1080, 0.78);
+      if (compressed) {
+        setPhotoNewInputUrl(compressed);
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Error optimizing image:', err);
+      alert('Failed to process image. Please try a different photo.');
+    }
   };
 
   // Save Settings
@@ -595,6 +617,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Firebase Cloud Live Badge */}
+          <div 
+            className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] font-medium"
+            title={`Firebase Firestore Connected (Project: luminous-listener-qf38q)`}
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <Database className="w-3 h-3 text-emerald-400" />
+            <span>Firestore Cloud Live</span>
+          </div>
+
           <button
             onClick={onViewLiveSite}
             className="text-xs bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"

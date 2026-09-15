@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128;
+    }
+
+    // Properties: Publicly viewable catalog, manageable via portal
+    match /properties/{propertyId} {
+      allow read: if true;
+      allow write: if isValidId(propertyId);
+    }
+
+    // Projects / Townships: Publicly viewable catalog, manageable via portal
+    match /projects/{projectId} {
+      allow read: if true;
+      allow write: if isValidId(projectId);
+    }
+
+    // Blogs / Articles: Publicly readable, manageable via portal
+    match /blogs/{blogId} {
+      allow read: if true;
+      allow write: if isValidId(blogId);
+    }
+
+    // Leads / Inquiries: Anyone can submit an inquiry; admins manage via portal
+    match /leads/{leadId} {
+      allow read, update, delete: if isValidId(leadId);
+      allow create: if isValidId(leadId) &&
+        request.resource.data.name is string &&
+        request.resource.data.name.size() > 0 &&
+        request.resource.data.phone is string &&
+        request.resource.data.phone.size() > 0;
+    }
+
+    // Site Settings: Publicly readable, manageable via portal
+    match /site_settings/{settingId} {
+      allow read: if true;
+      allow write: if isValidId(settingId);
+    }
+
+    // Site Photos: Publicly readable, manageable via portal
+    match /site_photos/{photoId} {
+      allow read: if true;
+      allow write: if isValidId(photoId);
+    }
+  }
+}

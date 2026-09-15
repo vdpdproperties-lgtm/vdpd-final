@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ActivePage, Property, AdminUser } from './types';
 import { VDPDStore } from './services/store';
+import { initFirebaseSync } from './services/firebaseSync';
 import { EyeOff } from 'lucide-react';
 
 // Common Components
@@ -66,8 +67,9 @@ export default function App() {
     setPhotos({ ...VDPDStore.getSitePhotosMap() });
   };
 
-  // Subscribe to store updates for real-time reactivity
+  // Subscribe to store updates & connect real-time Firebase cloud database
   useEffect(() => {
+    initFirebaseSync(refreshData);
     const unsubscribe = VDPDStore.subscribe(() => {
       refreshData();
     });
